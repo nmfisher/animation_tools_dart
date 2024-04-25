@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 ///
 /// A generic interface for storing/retrieving morph target animation (aka "blendshape") frame data.
 /// [morphTargets] contains the names of each morph target/blendshape.
@@ -12,7 +14,8 @@ class MorphAnimationData {
 
   MorphAnimationData(this.data, this.morphTargets,
       {this.frameLengthInMs = 1000 / 60}) {
-    assert(data.length == morphTargets.length * numFrames);
+    assert(morphTargets.isNotEmpty);
+    assert(numFrames > 0);
   }
 
   int get numMorphTargets => morphTargets.length;
@@ -27,5 +30,31 @@ class MorphAnimationData {
     for (int i = 0; i < numFrames; i++) {
       yield data[i][index];
     }
+  }
+
+  Float32List extract({List<String>? morphTargets}) {
+    late List<int> indices;
+    if (morphTargets == null) {
+      morphTargets = this.morphTargets;
+      indices = List<int>.generate(morphTargets.length, (i) => i);
+    } else {
+      indices = <int>[];
+      for (final morphTarget in morphTargets) {
+        var index = this.morphTargets.indexOf(morphTarget);
+        if (index == -1) {
+          throw Exception("Failed to find morph target $morphTarget");
+        }
+        indices.add(index);
+      }
+    }
+
+    var newData = Float32List(data.length * indices.length);
+    for (int i = 0; i < data.length; i++) {
+      for (int j = 0; j < indices.length; j++) {
+        var oldIdx = indices[j];
+        newData[(i * indices.length) + j] = data[i][oldIdx];
+      }
+    }
+    return newData;
   }
 }
