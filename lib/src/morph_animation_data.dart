@@ -1,25 +1,23 @@
 ///
-/// Specifies frame data (i.e. weights) to animate the morph targets contained in [morphTargets] under a mesh named [mesh].
-/// [data] is laid out as numFrames x numMorphTargets.
-/// Each frame is [numMorphTargets] in length, where the index of each weight corresponds to the respective index in [morphTargets].
-/// [morphTargets] must be some subset of the actual morph targets under [mesh] (though the order of these does not need to match).
+/// A generic interface for storing/retrieving morph target animation (aka "blendshape") frame data.
+/// [morphTargets] contains the names of each morph target/blendshape.
+/// Each value in [data] represents one frame.
+/// Each frame consists of N weights (usually between 0.0 and 1.0), representing the weight
+/// of the morph target/blendshape at the same index in [morphTargets].
 ///
 class MorphAnimationData {
-  final List<String> meshNames;
   final List<String> morphTargets;
+  final List<List<double>> data;
+  final double frameLengthInMs;
 
-  final List<double> data;
-
-  MorphAnimationData(
-      this.meshNames, this.data, this.morphTargets, this.frameLengthInMs) {
+  MorphAnimationData(this.data, this.morphTargets,
+      {this.frameLengthInMs = 1000 / 60}) {
     assert(data.length == morphTargets.length * numFrames);
   }
 
   int get numMorphTargets => morphTargets.length;
 
-  int get numFrames => data.length ~/ numMorphTargets;
-
-  final double frameLengthInMs;
+  int get numFrames => data.length;
 
   Iterable<double> getData(String morphName) sync* {
     int index = morphTargets.indexOf(morphName);
@@ -27,7 +25,7 @@ class MorphAnimationData {
       throw Exception("No data for morph $morphName");
     }
     for (int i = 0; i < numFrames; i++) {
-      yield data[(i * numMorphTargets) + index];
+      yield data[i][index];
     }
   }
 }
