@@ -57,4 +57,15 @@ class MorphAnimationData {
     }
     return newData;
   }
+
+  String toCSV() {
+    var sb = StringBuffer("Timestamp,BlendshapeCount,");
+    sb.writeln(morphTargets.join(","));
+    int frameNum = 0;
+    for (final frame in data) {
+      sb.writeln("$frameNum,$numMorphTargets," + frame.join(','));
+      frameNum++;
+    }
+    return sb.toString();
+  }
 }
