@@ -22,14 +22,27 @@ class MorphAnimationData {
 
   int get numFrames => data.length;
 
-  Iterable<double> getData(String morphName) sync* {
-    int index = morphTargets.indexOf(morphName);
-    if (index == -1) {
-      throw Exception("No data for morph $morphName");
+  int get durationInMs => (numFrames * frameLengthInMs).toInt();
+
+  List<int> _getMorphTargetIndices(List<String> names) {
+    final indices = <int>[];
+    for (final morphTarget in names) {
+      var index = this.morphTargets.indexOf(morphTarget);
+      if (index == -1) {
+        throw Exception("Failed to find morph target $morphTarget");
+      }
+      indices.add(index);
     }
-    for (int i = 0; i < numFrames; i++) {
-      yield data[i][index];
-    }
+    return indices;
+  }
+
+  MorphAnimationData subset(List<String> morphTargets) {
+    var indices = _getMorphTargetIndices(morphTargets);
+
+    return MorphAnimationData(
+        data.map((frame) => indices.map((i) => frame[i]).toList()).toList(),
+        morphTargets,
+        frameLengthInMs: frameLengthInMs);
   }
 
   Float32List extract({List<String>? morphTargets}) {
