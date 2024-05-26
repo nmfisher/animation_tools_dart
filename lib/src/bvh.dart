@@ -39,6 +39,7 @@ class BVHParser {
     var iter = data.split("\n").iterator;
     while (iter.moveNext()) {
       final line = iter.current.trim();
+      
       if (line.startsWith('ROOT') || line.startsWith('JOINT')) {
         var bone = line.split(' ')[1];
         if (remap?.containsKey(bone) == true) {
