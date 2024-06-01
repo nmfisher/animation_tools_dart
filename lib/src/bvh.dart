@@ -79,16 +79,16 @@ class BVHParser {
   ///
   /// The HIERARCHY section describes:
   /// - the structure of the skeleton (i.e. which bone is parented to which)
-  /// - the orientation (in world-space) of each bone
+  /// - the translation offset of each bone from its parent
   /// - which channels will be animated for each bone
   /// The MOTION section contains the actual animation data. The first three lines are self-explanatory.
   /// Each line thereafter represents one frame, and thus the values for each bone/channel at that frame,
   /// in the same order as specified in the HIERARCHY section. Each transformation is relative to its parent.
   /// I assume that rotation-order is specified by the order of the channel specifiation (i.e. "Xrotation Yrotation Zrotation" means XYZ).
   /// Conventionally, the root node generally has 6 channels (3 translation coordinates + 3 rotation angles)
-  /// Note that (AFAIK) BVH uses a single fixed right-handed coordinate system where +Z is up and +Y points into the screen.
+  /// BVH does not specify any coordinate system; note that Blender will export in its own system (i.e. +Z is up and +Y points into the screen).
   /// If you need a different coordinate system, pass in a transform via [changeOfBasis] matrix
-  /// Currently only XYZ or ZYX are supported. Rotations are always in degrees.
+  /// Currently only XYZ or ZYX are supported. 
   /// Pass [frameLengthInMs] if you want to override the frame length specified in the BVH data.
   ///
   static BoneAnimationData parse(String data,
@@ -142,11 +142,11 @@ class BVHParser {
       }
     }
     print("Using frame length $frameLengthInMs");
-    
+
     final X = basis.transform(Vector3(1, 0, 0));
     final Y = basis.transform(Vector3(0, 1, 0));
     final Z = basis.transform(Vector3(0, 0, 1));
-    
+
     while (iter.moveNext()) {
       final line = iter.current;
       if (line.isEmpty) {
@@ -217,7 +217,7 @@ class BVHParser {
             frameData.add((rotation: rot, translation: trans));
             print("Matched bone ${bone.name}");
           }
-          
+
           channelIndex = 0;
           rotXYZ = <double>[0, 0, 0];
           transXYZ = <double>[0, 0, 0];
@@ -231,13 +231,15 @@ class BVHParser {
 
     // filter the list of bone names so we're only specifying those that match the regexp
     late List<String> filteredBones;
-    if(boneRegex == null) {
+    if (boneRegex == null) {
       filteredBones = bones.map((b) => b.name).toList();
-    } else { 
-      filteredBones = bones.where((b) => boneRegex!.hasMatch(b.name)).map((b) => b.name).toList();
+    } else {
+      filteredBones = bones
+          .where((b) => boneRegex!.hasMatch(b.name))
+          .map((b) => b.name)
+          .toList();
     }
-    return BoneAnimationData(
-        filteredBones, animation,
+    return BoneAnimationData(filteredBones, animation,
         frameLengthInMs: frameLengthInMs!, space: Space.ParentWorldRotation);
   }
 
