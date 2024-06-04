@@ -66,13 +66,11 @@ class BoneAnimationData {
       final newFrame = SkeletonTransform.from(frame);
       var oldBoneTransform = newFrame[boneIndex];
       var oldRotation = oldBoneTransform.rotation;
-      print("old $oldRotation");
       var newX = min(max(oldRotation.x, minRotation.x), maxRotation.x);
       var newY = min(max(oldRotation.y, minRotation.y), maxRotation.y);
       var newZ = min(max(oldRotation.z, minRotation.z), maxRotation.z);
       var newW = min(max(oldRotation.w, minRotation.w), maxRotation.w);
       var newRotation = Quaternion(newX, newY, newZ, newW).normalized();
-      print("new $newRotation");
       newFrame[boneIndex] =
           (rotation: newRotation, translation: oldBoneTransform.translation);
       return newFrame;
