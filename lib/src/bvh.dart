@@ -215,7 +215,6 @@ class BVHParser {
           }
           if (boneRegex?.hasMatch(bone.name) != false) {
             frameData.add((rotation: rot, translation: trans));
-            print("Matched bone ${bone.name}");
           }
 
           channelIndex = 0;
