@@ -38,6 +38,58 @@ void main() {
       assert((extracted.last - 3.0).abs() < 0.00001);
     });
 
+    test('BoneAnimationData rotation constraints', () {
+      var bones = ["Bone1", "Bone2"];
+      var numFrames = 2;
+      var rotations = [
+        [
+          (
+            rotation: Quaternion(0.0, 0.0, 0.0, 0.0),
+            translation: Vector3.zero()
+          ),
+          (
+            rotation: Quaternion(0.0, 0.0, 0.0, 0.0),
+            translation: Vector3.zero()
+          )
+        ],
+        [
+          (
+            rotation: Quaternion(1.0, 1.0, 1.0, 1.0),
+            translation: Vector3.zero()
+          ),
+          (
+            rotation: Quaternion(0.9, 0.9, 0.9, 0.9),
+            translation: Vector3.zero()
+          )
+        ]
+      ];
+      var constrained = BoneAnimationData(bones, rotations).constrain("Bone1",
+          Quaternion(0.1, 0.0, 0.0, 0.0), Quaternion(0.5, 0.1, 0.1, 0.1));
+      var bone1Frames = constrained.bone("Bone1");
+
+      expect(bone1Frames.first.rotation.w, 0.0);
+      expect(bone1Frames.first.rotation.x, 0.1);
+      expect(bone1Frames.first.rotation.y, 0.0);
+      expect(bone1Frames.first.rotation.z, 0.0);
+
+      expect(bone1Frames.last.rotation.w, 0.1);
+      expect(bone1Frames.last.rotation.x, 0.5);
+      expect(bone1Frames.last.rotation.y, 0.1);
+      expect(bone1Frames.last.rotation.z, 0.1);
+
+      var bone2Frames = constrained.bone("Bone2");
+
+      expect(bone2Frames.first.rotation.w, 0.0);
+      expect(bone2Frames.first.rotation.x, 0.0);
+      expect(bone2Frames.first.rotation.y, 0.0);
+      expect(bone2Frames.first.rotation.z, 0.0);
+
+      expect(bone2Frames.last.rotation.w, 0.9);
+      expect(bone2Frames.last.rotation.x, 0.9);
+      expect(bone2Frames.last.rotation.y, 0.9);
+      expect(bone2Frames.last.rotation.z, 0.9);
+    });
+
     test('BVH test 1', () {
       var string = """HIERARCHY
 ROOT Hips
@@ -107,52 +159,52 @@ Frame Time: 0.06666666666666
     /// 0 0 1
     /// 0 -1 0
     /// (i.e. rotate the BVH system by -90 degrees around its X axis).
-    /// 
+    ///
     /// Alternatively, we can use the transpose to convert from the former to the latter:
     /// 1 0 0
     /// 0 0 -1
     /// 0 1 0
     /// (i.e. rotate the 'conventional' system by 90 degrees around its X axis).
-    /// 
+    ///
     /// Let's double check with:
-    ///   M * bv_new = bv_old 
+    ///   M * bv_new = bv_old
     /// (bv_old/bv_new are basis vectors in the 'first' and 'second' coordinate systems respectively)
     /// M is a change-of-basis matrix that converts between the two.
-    /// 
+    ///
     /// Here, BVH is the "new" coordinate system, "conventional" is the old.
     /// BVH X is the same as "conventional X"
-    /// [ 1  0  0     [ 1         [ 1 
+    /// [ 1  0  0     [ 1         [ 1
     ///   0  0  -1   *  0      =    0
     ///   0  1  0 ]     0 ]         0 ]
-    /// 
-    /// "Conventional -Z" becomes BVH Y   
-    /// [ 1  0  0     [ 0         [ 0 
+    ///
+    /// "Conventional -Z" becomes BVH Y
+    /// [ 1  0  0     [ 0         [ 0
     ///   0  0  1   *   1      =    0
     ///   0 -1  0 ]     0 ]         -1 ]
-    /// 
+    ///
     /// "Conventional Y" becomes BVH Z
-    /// [ 1  0  0     [ 0         [ 0 
+    /// [ 1  0  0     [ 0         [ 0
     ///   0  0  1   *   0      =    1
     ///   0 -1  0 ]     1 ]         0 ]
-    /// 
-    /// Now let's check the other way - "conventional" is the new system, BVH is the old - 
+    ///
+    /// Now let's check the other way - "conventional" is the new system, BVH is the old -
     /// using the transpose of this matrix.
     ///
     /// "BVH X" is the same as "Conventional X":
-    /// [ 1  0  0      [ 1         [ 1 
+    /// [ 1  0  0      [ 1         [ 1
     ///   0  0  -1   *   0      =    0
     ///   0  1  0 ]      0 ]         0 ]
-    /// 
+    ///
     /// "BVH Z" becomes "Conventional Y":
-    /// [ 1  0  0     [ 0         [ 0 
+    /// [ 1  0  0     [ 0         [ 0
     ///   0  0  -1  *   1      =    0
     ///   0  1  0 ]     0 ]         1 ]
-    /// 
-    /// "BVH -Y" axis becomes "Conventional Z" 
-    /// [ 1  0  0     [ 0         [ 0 
+    ///
+    /// "BVH -Y" axis becomes "Conventional Z"
+    /// [ 1  0  0     [ 0         [ 0
     ///   0  0 -1   *   0      =   -1
     ///   0  1  0 ]     1 ]         0 ]
-    /// 
+    ///
     /// This test checks that the rotations are adequately transformed when passing this change-of-basis matrix.
     test('Change of basis', () {
       var string = """HIERARCHY
