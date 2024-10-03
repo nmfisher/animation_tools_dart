@@ -9,7 +9,7 @@ import 'dart:typed_data';
 ///
 class MorphAnimationData {
   final List<String> morphTargets;
-  final List<List<double>> data;
+  final Float32List data;
   final double frameLengthInMs;
 
   MorphAnimationData(this.data, this.morphTargets,
@@ -20,7 +20,7 @@ class MorphAnimationData {
 
   int get numMorphTargets => morphTargets.length;
 
-  int get numFrames => data.length;
+  int get numFrames => data.length ~/ numMorphTargets;
 
   int get durationInMs => (numFrames * frameLengthInMs).toInt();
 
@@ -36,46 +36,38 @@ class MorphAnimationData {
     return indices;
   }
 
-  MorphAnimationData subset(List<String> morphTargets) {
-    var indices = _getMorphTargetIndices(morphTargets);
-
-    return MorphAnimationData(
-        data.map((frame) => indices.map((i) => frame[i]).toList()).toList(),
-        morphTargets,
-        frameLengthInMs: frameLengthInMs);
-  }
-
-  Float32List extract({List<String>? morphTargets}) {
-    late List<int> indices;
-    if (morphTargets == null) {
-      morphTargets = this.morphTargets;
-      indices = List<int>.generate(morphTargets.length, (i) => i);
-    } else {
-      indices = <int>[];
-      for (final morphTarget in morphTargets) {
+  MorphAnimationData subset(List<String> newMorphTargets) {
+    late List<int> indices = <int>[];
+      for (final morphTarget in newMorphTargets) {
         var index = this.morphTargets.indexOf(morphTarget);
         if (index == -1) {
           throw Exception("Failed to find morph target $morphTarget");
         }
         indices.add(index);
       }
-    }
+    
 
-    var newData = Float32List(data.length * indices.length);
-    for (int i = 0; i < data.length; i++) {
-      for (int j = 0; j < indices.length; j++) {
-        var oldIdx = indices[j];
-        newData[(i * indices.length) + j] = data[i][oldIdx];
+    var newData = Float32List(numFrames * indices.length);
+    
+
+    for (int frameNum = 0; frameNum < numFrames; frameNum++) {
+      for (int newIdx = 0; newIdx < indices.length; newIdx++) {
+        var oldIdx = indices[newIdx];
+        newData[(frameNum * indices.length) + newIdx] =
+            data[(frameNum * this.morphTargets.length) + oldIdx];
       }
     }
-    return newData;
+    return MorphAnimationData(newData, newMorphTargets,
+        frameLengthInMs: frameLengthInMs);
   }
 
   String toCSV() {
     var sb = StringBuffer("Timestamp,BlendshapeCount,");
     sb.writeln(morphTargets.join(","));
     int frameNum = 0;
-    for (final frame in data) {
+    for (int i = 0; i < data.length ~/ morphTargets.length; i++) {
+      var frame =
+          data.sublist(i * morphTargets.length, (i + 1) * morphTargets.length);
       sb.writeln("$frameNum,$numMorphTargets," + frame.join(','));
       frameNum++;
     }

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:animation_tools_dart/animation_tools_dart.dart';
 import 'package:test/test.dart';
@@ -17,25 +18,29 @@ void main() {
     test('MorphAnimationData test', () {
       var morphTargets = ["target1", "target2", "target3"];
       var numFrames = 60;
-      var frameData = List.generate(
+      var frameData = Float32List.fromList(List<List<double>>.generate(
           numFrames,
           (frameNum) => [
                 (1 + frameNum) / numFrames,
                 ((1 + frameNum) / numFrames) * 2,
                 ((1 + frameNum) / numFrames) * 3
-              ]);
+              ]).expand((x) => x).toList());
 
       var animationData = MorphAnimationData(frameData, morphTargets);
-      assert(animationData.numFrames == 60);
+
+      expect(animationData.numFrames, 60);
+
       var copy = animationData.subset(["target2"]);
-      assert(copy.numFrames == 60);
-      assert(copy.data[0].length == 1);
-      print(copy.data[59][0]);
-      assert((copy.data[59][0] - 2.0).abs() < 0.0001);
-      var extracted =
-          animationData.extract(morphTargets: ["target2", "target3"]);
-      assert(extracted.length == numFrames * 2);
-      assert((extracted.last - 3.0).abs() < 0.00001);
+
+      expect(copy.numFrames, 60);
+      expect(copy.data.length, 60);
+      print(copy.data);
+      expect(copy.data.last, 2.0);
+
+      var copy2 =
+          animationData.subset(["target2", "target3"]);
+      expect(copy2.data.length, numFrames * 2);
+      expect(copy2.data.last, 3.0);
     });
 
     test('BoneAnimationData rotation constraints', () {
