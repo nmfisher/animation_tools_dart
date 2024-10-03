@@ -1,6 +1,6 @@
 name: animation_tools_dart
 description: Various small helper classes for working with animation data.
-version: 0.0.4
+version: 0.1.0
 repository: https://github.com/nmfisher/animation_tools_dart
 
 environment:
