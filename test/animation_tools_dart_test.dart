@@ -10,11 +10,7 @@ expectTolerance(double v1, double v2, {double tolerance = 0.0001}) {
 }
 
 void main() {
-  group('A group of tests', () {
-    setUp(() {
-      // Additional setup goes here.
-    });
-
+  group('MorphAnimationData tests', () {
     test('MorphAnimationData test', () {
       var morphTargets = ["target1", "target2", "target3"];
       var numFrames = 60;
@@ -37,10 +33,57 @@ void main() {
       print(copy.data);
       expect(copy.data.last, 2.0);
 
-      var copy2 =
-          animationData.subset(["target2", "target3"]);
+      var copy2 = animationData.subset(["target2", "target3"]);
       expect(copy2.data.length, numFrames * 2);
       expect(copy2.data.last, 3.0);
+    });
+
+    test('MorphAnimationData resample method interpolates correctly', () {
+      // Create a simple animation with two morph targets
+      // The first morph target goes from 0 to 1 linearly
+      // The second morph target follows a sin wave
+      final morphTargets = ['linear', 'sine'];
+      final numFrames = 60;
+      final originalFrameRate = 30.0;
+      final data = Float32List(numFrames * 2);
+
+      for (int i = 0; i < numFrames; i++) {
+        final t = i / (numFrames - 1);
+        data[i * 2] = t; // linear
+        data[i * 2 + 1] = sin(t * 2 * pi); // sine wave
+      }
+
+      final originalAnimation = MorphAnimationData(data, morphTargets,
+          frameLengthInMs: 1000 / originalFrameRate);
+
+      // Resample to 60 fps
+      final newFrameRate = 60.0;
+      final resampledAnimation = originalAnimation.resample(newFrameRate);
+
+      // Check if the number of frames has doubled
+      expect(resampledAnimation.numFrames, equals(numFrames * 2));
+
+      // Check if the frame length has halved
+      expect(resampledAnimation.frameLengthInMs,
+          closeTo(1000 / newFrameRate, 0.001));
+
+      // Check interpolation at specific points
+      for (int i = 0; i < resampledAnimation.numFrames; i++) {
+        final t = i / (resampledAnimation.numFrames - 1);
+        final linearValue = resampledAnimation.data[i * 2];
+
+        // Check linear interpolation
+        expect(linearValue, closeTo(t, 0.01));
+
+      }
+
+      // Check start and end points
+      expect(resampledAnimation.data[0], closeTo(0.0, 0.001));
+      expect(resampledAnimation.data[1], closeTo(0.0, 0.001));
+      expect(resampledAnimation.data[resampledAnimation.data.length - 2],
+          closeTo(1.0, 0.001));
+      expect(resampledAnimation.data[resampledAnimation.data.length - 1],
+          closeTo(0.0, 0.001));
     });
 
     test('BoneAnimationData rotation constraints', () {
