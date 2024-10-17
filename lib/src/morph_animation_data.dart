@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:math';
 
 ///
 /// A generic interface for storing/retrieving morph target animation (aka "blendshape") frame data.
@@ -13,7 +14,7 @@ class MorphAnimationData {
   final double frameLengthInMs;
 
   MorphAnimationData(this.data, this.morphTargets,
-      {this.frameLengthInMs = 1000 / 60}) {
+      {required this.frameLengthInMs}) {
     assert(morphTargets.isNotEmpty);
     assert(numFrames > 0);
   }
@@ -72,6 +73,79 @@ class MorphAnimationData {
     return sb.toString();
   }
 
+  MorphAnimationData frame(int start, int end) {
+    var frameData = Float32List.sublistView(
+        this.data, start * numMorphTargets, end * numMorphTargets);
+    return MorphAnimationData(frameData, morphTargets,
+        frameLengthInMs: frameLengthInMs);
+  }
+
+  MorphAnimationData rename(List<String> morphTargets) {
+    return MorphAnimationData(data, morphTargets,
+        frameLengthInMs: frameLengthInMs);
+  }
+
+  void scale(double scale) {
+    if (scale == 1.0) {
+      return;
+    }
+    for(int i =0; i < data.length; i++) {
+      data[i] = max(0.0, min(1.0, data[i] * scale));
+    }
+  }
+
+  static MorphAnimationData merge(List<MorphAnimationData> animations) {
+    var totalSize = 0;
+    for (final animation in animations) {
+      totalSize += animation.data.length;
+    }
+    var mergedData = Float32List(totalSize);
+    var offset = 0;
+    for (final animation in animations) {
+      mergedData.setRange(
+          offset, offset + animation.data.length, animation.data);
+      offset += animation.data.length;
+    }
+    return MorphAnimationData(mergedData, animations.first.morphTargets,
+        frameLengthInMs: animations.first.frameLengthInMs);
+  }
+
+  MorphAnimationData filter({
+    double processNoise = 1e-4,
+    double measurementNoise = 1e-1,
+    double? initialEstimate,
+  }) {
+    Float32List filteredData = Float32List(data.length);
+
+    for (int morphTargetIndex = 0;
+        morphTargetIndex < numMorphTargets;
+        morphTargetIndex++) {
+      double estimate = initialEstimate ?? data[morphTargetIndex];
+      double errorEstimate = 1.0;
+
+      for (int frameIndex = 0; frameIndex < numFrames; frameIndex++) {
+        int dataIndex = frameIndex * numMorphTargets + morphTargetIndex;
+        double measurement = data[dataIndex];
+
+        // Prediction step
+        double predictedEstimate = estimate;
+        double predictedErrorEstimate = errorEstimate + processNoise;
+
+        // Update step
+        double kalmanGain = predictedErrorEstimate /
+            (predictedErrorEstimate + measurementNoise);
+        estimate =
+            predictedEstimate + kalmanGain * (measurement - predictedEstimate);
+        errorEstimate = (1 - kalmanGain) * predictedErrorEstimate;
+
+        filteredData[dataIndex] = estimate;
+      }
+    }
+
+    return MorphAnimationData(filteredData, morphTargets,
+        frameLengthInMs: frameLengthInMs);
+  }
+
   MorphAnimationData resample(double newFrameRate) {
     if (newFrameRate == 1000 / frameLengthInMs) {
       return this;
@@ -79,7 +153,6 @@ class MorphAnimationData {
 
     double factor = newFrameRate / (1000 / frameLengthInMs);
     int expectedLength = (numFrames * factor).round();
-    print("curr frame length ${frameLengthInMs} current length $numFrames EXPECTED LEGNTH $expectedLength");
 
     List<double> x = List.generate(expectedLength, (i) => i / newFrameRate);
     List<double> xp =
